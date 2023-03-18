@@ -17,17 +17,31 @@ const uri = `mongodb+srv://${process.env.DBUser}:${process.env.DBPassword}@clust
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
-async function run(){
-    try{
+async function run() {
+    try {
         const consultationCollection = client.db('university-project').collection('consultation');
-
+        const doctorsCollection = client.db('university-project').collection('doctors');
+        // consultation data
         app.get('/consultation', async (req, res) => {
             const query = {};
             const consultation = await consultationCollection.find(query).toArray();
             res.send(consultation);
         })
+        // get doctors basis on speciality 
+        app.get('/specialities/:speciality', async (req, res) => {
+            const speciality = req.params.speciality;
+            console.log(speciality);
+            const query = { specialities: speciality };
+            const doctors = await doctorsCollection.find(query).toArray();
+            res.send(doctors)
+           
+        })
+
+
     }
-    finally{
+
+
+    finally {
 
     }
 }
