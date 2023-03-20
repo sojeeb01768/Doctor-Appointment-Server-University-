@@ -34,7 +34,7 @@ async function run() {
             const query = { specialities: speciality };
             const doctors = await doctorsCollection.find(query).toArray();
             res.send(doctors)
-           
+
         })
 
 
@@ -48,7 +48,7 @@ async function run() {
 run().catch(console.log);
 
 app.get('/', async (req, res) => {
-    res.send('doctors portal is running')
+    res.send('doctors portal server  is running')
 })
 
 app.listen(port, () => console.log(`doctors portal running on ${port}`))
