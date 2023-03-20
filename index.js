@@ -25,12 +25,21 @@ async function run() {
         app.get('/consultation', async (req, res) => {
             const query = {};
             const consultation = await consultationCollection.find(query).toArray();
-            res.send(consultation);
+            res.send(consultation);    
+        })
+        
+        // consultation with id
+        app.get('/consult/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { id: id };
+            const consult = await doctorsCollection.find(query).toArray();
+            res.send(consult)
         })
         // get doctors basis on speciality 
-        app.get('/specialities/:speciality', async (req, res) => {
-            const speciality = req.params.speciality;
-            console.log(speciality);
+        app.get('/specialities/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
             const query = { specialities: speciality };
             const doctors = await doctorsCollection.find(query).toArray();
             res.send(doctors)
