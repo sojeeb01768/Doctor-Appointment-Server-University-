@@ -22,12 +22,15 @@ async function run() {
     try {
         const consultationCollection = client.db('university-project').collection('consultation');
         const doctorsCollection = client.db('university-project').collection('doctors');
+        const bookingsCollection = client.db('university-project').collection('bookings');
+        const usersCollection = client.db('university-project').collection('users');
+
         // consultation data
         app.get('/consultation', async (req, res) => {
             const query = {};
             const consultation = await consultationCollection.find(query).toArray();
             res.send(consultation);
-        })
+        });
 
         // consultation with id
         app.get('/consult/:id', async (req, res) => {
@@ -36,7 +39,7 @@ async function run() {
             const query = { id: id };
             const consult = await doctorsCollection.find(query).toArray();
             res.send(consult)
-        })
+        });
         // get doctors basis on speciality 
         app.get('/specialities/:id', async (req, res) => {
             const id = req.params.id;
@@ -45,7 +48,7 @@ async function run() {
             const doctors = await doctorsCollection.find(query).toArray();
             res.send(doctors)
 
-        })
+        });
         // get single doctor basis on id 
         app.get('/doctor-details/:id', async (req, res) => {
             const id = req.params.id;
@@ -54,6 +57,21 @@ async function run() {
             };
             const doctor = await doctorsCollection.findOne(query);
             res.send(doctor)
+        });
+
+        // post booking data to database
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            // console.log(booking);
+            const result = await bookingsCollection.insertOne(booking);
+            res.send(result);
+        })
+
+        // save user data to database
+        app.post('/users', async (req, res) => {
+            const user=req.body;
+            const result = await usersCollection.insertOne(user);
+            res.send(result);
         })
 
     }
