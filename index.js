@@ -6,6 +6,8 @@ require('dotenv').config();
 const { query } = require('express');
 const { MongoClient, ServerApiVersion, ObjectId, } = require('mongodb');
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 const app = express();
 
 // middleware
@@ -25,6 +27,7 @@ async function run() {
         const doctorsCollection = client.db('university-project').collection('doctors');
         const bookingsCollection = client.db('university-project').collection('bookings');
         const usersCollection = client.db('university-project').collection('users');
+        const paymentCollection = client.db('university-project').collection('payments');
 
 
         //NOTE:  make sure you use varifyAdmin after verifyJWT
@@ -164,6 +167,24 @@ async function run() {
             res.send(result);
         })
 
+
+        //doctor route only
+        app.get('/users/doctor/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email }
+            const user = await usersCollection.findOne(query)
+            res.send({ isDoctor: user?.category === 'Doctor' })
+        });
+
+
+        // patient only route
+        app.get('/users/patient/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email }
+            const user = await usersCollection.findOne(query)
+            res.send({ isPatient: user?.category === 'Patient' })
+        });
+
         // secure admin route by varify admin
         app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email;
@@ -196,7 +217,25 @@ async function run() {
         })
 
 
-        // get booking data to dashboard
+        // ----------------------------------------------------------------------
+        // Doctors sides 
+        // ----------------------------------------------------------------------
+
+        app.get('/doctor-appointment', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            const query = { doctorEmail: email };
+            // console.log(query);
+            const myPatient = await bookingsCollection.find(query).toArray();
+            res.send(myPatient);
+        })
+
+
+
+        // get user booking data to dashboard
         app.get('/bookings', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const decodedEmail = req.decoded.email;
@@ -209,6 +248,53 @@ async function run() {
             // console.log(query);
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings);
+        })
+
+        // get specific booking data from db
+
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const booking = await bookingsCollection.findOne(query)
+            res.send(booking);
+        })
+
+
+        // payment section
+        app.post("/create-payment-intent", async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = price * 100;
+
+
+            // Create a PaymentIntent with the order amount and currency
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                "payment_method_types": [
+                    "card"
+                ]
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        // store payment data to DB
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentCollection.insertOne(payment);
+            const id = payment.bookingID;
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+            res.send(result);
         })
 
 
