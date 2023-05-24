@@ -81,6 +81,19 @@ async function run() {
             res.send(doctors)
 
         });
+        // ----------------------------------------------------
+        // For Add Doctor route
+        // ------------------------------------------------------
+        // doctors info for add doctor route
+        app.get('/doctorsInfo', async (req, res) => {
+            const query = {}
+            const result = await doctorsCollection.find(query).project({ _id: 0, slots: 1 }).toArray();
+            res.send(result);
+        })
+
+
+
+
         //use aggregate to query multiple collection and then merge data
         //get all doctors
         app.get('/doctors', async (req, res) => {
@@ -125,13 +138,15 @@ async function run() {
         // post booking data to database
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
-            console.log(booking);
+            // console.log(booking);
             const query = {
                 appointmentDate: booking.appointmentDate,
                 email: booking.patientEmail,
                 doctor: booking.doctorName
             }
+            // console.log(query);
             const alreadyBooked = await bookingsCollection.find(query).toArray();
+
             if (alreadyBooked.length) {
                 const message = `You  Already have an Booking on ${booking.appointmentDate}`
                 return res.send({ acknowledged: false, message })
@@ -220,7 +235,15 @@ async function run() {
         // ----------------------------------------------------------------------
         // Doctors sides 
         // ----------------------------------------------------------------------
+        //  send doctors info to database
+        app.post('/doctors', async (req, res) => {
+            const doctor = req.body;
+            const result = await doctorsCollection.insertOne(doctor)
+            res.send(result)
+        })
 
+
+        // specific patient for doctor dashboard
         app.get('/doctor-appointment', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const decodedEmail = req.decoded.email;
@@ -233,6 +256,8 @@ async function run() {
             res.send(myPatient);
         })
 
+
+        // ----------------------------------------------------------------
 
 
         // get user booking data to dashboard
