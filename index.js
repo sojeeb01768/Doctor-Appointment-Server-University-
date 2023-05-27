@@ -1,5 +1,5 @@
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
 const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -11,15 +11,16 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 
 // middleware
-app.use(cors())
-app.use(express.json())
-
-
+app.use(cors());
+app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DBUser}:${process.env.DBPassword}@cluster0.kvqywrf.mongodb.net/?retryWrites=true&w=majority`;
 // console.log(uri);
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverApi: ServerApiVersion.v1,
+});
 
 async function run() {
     try {
@@ -64,23 +65,16 @@ async function run() {
             res.send(consultation);
         });
 
-        // consultation with id
-        app.get('/consult/:id', async (req, res) => {
-            const id = req.params.id;
-            console.log(id);
-            const query = { id: id };
-            const consult = await doctorsCollection.find(query).toArray();
-            res.send(consult)
-        });
-        // get doctors basis on speciality 
-        app.get('/specialities/:id', async (req, res) => {
-            const id = req.params.id;
-            console.log(id);
-            const query = { specialities: speciality };
-            const doctors = await doctorsCollection.find(query).toArray();
-            res.send(doctors)
+    // consultation with id
+    app.get("/consult/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { id: id };
+      const consult = await doctorsCollection.find(query).toArray();
+      res.send(consult);
+    });
 
-        });
+        
         // ----------------------------------------------------
         // For Add Doctor route
         // ------------------------------------------------------
@@ -325,14 +319,15 @@ async function run() {
 
 
     }
-    finally {
 
-    }
+  
+  finally {
+  }
 }
 run().catch(console.log);
 
-app.get('/', async (req, res) => {
-    res.send('doctors portal server  is running')
-})
+app.get("/", async (req, res) => {
+  res.send("doctors portal server  is running");
+});
 
-app.listen(port, () => console.log(`doctors portal running on ${port}`))
+app.listen(port, () => console.log(`doctors portal running on ${port}`));
