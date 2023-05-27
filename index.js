@@ -6,6 +6,8 @@ require("dotenv").config();
 const { query } = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 const app = express();
 
 // middleware
@@ -21,17 +23,12 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-  try {
-    const consultationCollection = client
-      .db("university-project")
-      .collection("consultation");
-    const doctorsCollection = client
-      .db("university-project")
-      .collection("doctors");
-    const bookingsCollection = client
-      .db("university-project")
-      .collection("bookings");
-    const usersCollection = client.db("university-project").collection("users");
+    try {
+        const consultationCollection = client.db('university-project').collection('consultation');
+        const doctorsCollection = client.db('university-project').collection('doctors');
+        const bookingsCollection = client.db('university-project').collection('bookings');
+        const usersCollection = client.db('university-project').collection('users');
+        const paymentCollection = client.db('university-project').collection('payments');
 
     //NOTE:  make sure you use varifyAdmin after verifyJWT
     const verifyJWT = async (req, res, next) => {
