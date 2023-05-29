@@ -21,6 +21,30 @@ const uri = `mongodb+srv://${process.env.DBUser}:${process.env.DBPassword}@clust
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
+// //NOTE:  make sure you use varifyAdmin after verifyJWT
+// function verifyJWT(req, res, next) {
+//     // console.log("inside verifyJWT", req.headers.authorization);
+//     const authHeader = req.headers.authorization;
+
+//     // const decodedEmail = req.decoded.email;
+//     // const query = { email: decodedEmail };
+//     // const user = await usersCollection.findOne(query);
+
+//     if (!authHeader) {
+//         return res.status(401).send({ message: 'unauthorized access' })
+//     }
+
+//     const token = authHeader.split(' ')[1];
+
+//     jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+//         if (err) {
+//             return res.status(403).send({ message: 'forbidden access' })
+//         }
+//         req.decoded = decoded;
+//         next();
+//     })
+// }
+
 async function run() {
     try {
         const consultationCollection = client.db('university-project').collection('consultation');
@@ -53,6 +77,20 @@ async function run() {
                 next();
             })
         }
+
+        // //NOTE:  make sure you use varifyAdmin after verifyJWT
+        // // verify Admin 
+        // const verifyAdmin = async (req, res, next) => {
+        //     console.log('Inside verifyAdmin', req.decoded.email);
+        //     const decodedEmail = req.decoded.email;
+        //     const query = { email: decodedEmail };
+        //     const user = await usersCollection.findOne(query);
+
+        //     if (user?.category !== 'admin') {
+        //         return res.send(403).send({ message: 'forbidden access' })
+        //     }
+        //     next();
+        // }
 
 
 
@@ -235,12 +273,31 @@ async function run() {
         // ----------------------------------------------------------------------
         // Doctors sides 
         // ----------------------------------------------------------------------
+        // get doctors info from db to admin dashboard
+
+        app.get('/alldoctors', async (req, res) => {
+            const query = {}
+            const alldoctors = await doctorsCollection.find(query).toArray()
+            res.send(alldoctors)
+        })
+
+        // delete Doctor
+        app.delete('/alldoctors/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const result = await doctorsCollection.deleteOne(filter);
+            res.send(result)
+        })
+
+
         //  send doctors info to database
         app.post('/doctors', async (req, res) => {
             const doctor = req.body;
             const result = await doctorsCollection.insertOne(doctor)
             res.send(result)
         })
+
+
 
 
         // specific patient for doctor dashboard
