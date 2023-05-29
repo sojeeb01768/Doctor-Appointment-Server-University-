@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const port = process.env.PORT || 5000;
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken')
 require('dotenv').config();
 const { query } = require('express');
+const nodemailer = require('nodemailer');
+const mailgunTransport = require('nodemailer-mailgun-transport');
 const { MongoClient, ServerApiVersion, ObjectId, } = require('mongodb');
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -94,6 +96,57 @@ async function run() {
 
 
 
+        //mail
+
+
+        // const mailgunOptions = {
+        //     auth: {
+        //       api_key: '1b803715634f0b1cc5bbd837ae83f96e-07ec2ba2-8b882da8',
+        //       domain: 'sandboxec53d94373d542a890c5c6726e9fa241.mailgun.org'
+        //     }
+        //   };
+        //   const mailgunTransporter = nodemailer.createTransport(mailgunTransport(mailgunOptions));
+      
+        
+        
+        const mailgunOptions = {
+            auth: {
+              api_key: '1b803715634f0b1cc5bbd837ae83f96e-07ec2ba2-8b882da8',
+              domain: 'sandboxec53d94373d542a890c5c6726e9fa241.mailgun.org'
+            }
+          };
+          const mailgunTransporter = nodemailer.createTransport(mailgunTransport(mailgunOptions));
+          
+          app.post('/send-email', (req, res) => {
+            const { button, doctorEmail, patientEmail } = req.body;
+          
+            if (button === 'absent') {
+              sendEmail(doctorEmail, patientEmail, 'Absent!!! You have missed the appointment', 'Dear Patient, you were absent for your appointment.');
+            } else if (button === 'visit') {
+              sendEmail(doctorEmail, patientEmail, 'Congratulations', 'Dear Patient, You have successfully visited your doctor. Further query mail me directly or book me from Doctorian');
+            }
+          
+            res.json({ message: 'Email sent successfully!' });
+          });
+          
+          async function sendEmail(from, to, subject, message) {
+            const mailOptions = {
+              from: from,
+              to: to,
+              subject: subject,
+              text: message
+            };
+          
+            await mailgunTransporter.sendMail(mailOptions);
+          }
+          
+
+
+
+
+
+
+
 
         // consultation data
         app.get('/consultation', async (req, res) => {
@@ -105,7 +158,8 @@ async function run() {
         // consultation with id
         app.get('/consult/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id);
+            console.log(id)
+;
             const query = { id: id };
             const consult = await doctorsCollection.find(query).toArray();
             res.send(consult)
@@ -113,7 +167,8 @@ async function run() {
         // get doctors basis on speciality 
         app.get('/specialities/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id);
+            console.log(id)
+;
             const query = { specialities: speciality };
             const doctors = await doctorsCollection.find(query).toArray();
             res.send(doctors)
@@ -128,6 +183,14 @@ async function run() {
             const result = await doctorsCollection.find(query).project({ _id: 0, slots: 1 }).toArray();
             res.send(result);
         })
+
+        app.get('/allDoctorsInfo', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const result = await doctorsCollection.find(query).toArray();
+            res.send(result);
+        })
+
 
 
 
@@ -168,6 +231,7 @@ async function run() {
             const id = req.params.id;
             const query = {
                 _id: new ObjectId(id)
+
             };
             const doctor = await doctorsCollection.findOne(query);
             res.send(doctor)
@@ -258,7 +322,8 @@ async function run() {
                 return res.send(403).send({ message: 'forbidden access' })
             }
             const id = req.params.id;
-            const filter = { _id: new ObjectId(id) }
+            const filter = { _id: new ObjectId(id)
+ }
             const options = { upsert: true };
             const updatedDoc = {
                 $set: {
@@ -324,7 +389,8 @@ async function run() {
             if (email !== decodedEmail) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
-            // console.log(email);
+            // console.log(email)
+;
             // console.log('token', req.headers.authorization);
             const query = { patientEmail: email };
             // console.log(query);
@@ -336,7 +402,8 @@ async function run() {
 
         app.get('/bookings/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
+            const query = { _id: new ObjectId(id)
+ }
             const booking = await bookingsCollection.findOne(query)
             res.send(booking);
         })
@@ -368,7 +435,8 @@ async function run() {
             const payment = req.body;
             const result = await paymentCollection.insertOne(payment);
             const id = payment.bookingID;
-            const filter = { _id: new ObjectId(id) }
+            const filter = { _id: new ObjectId(id)
+ }
             const updatedDoc = {
                 $set: {
                     paid: true,
