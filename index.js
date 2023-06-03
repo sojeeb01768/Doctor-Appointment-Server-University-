@@ -54,6 +54,7 @@ async function run() {
         const bookingsCollection = client.db('university-project').collection('bookings');
         const usersCollection = client.db('university-project').collection('users');
         const paymentCollection = client.db('university-project').collection('payments');
+        const prescriptionCollection = client.db("university-project").collection("prescription");
 
 
         //NOTE:  make sure you use varifyAdmin after verifyJWT
@@ -106,41 +107,39 @@ async function run() {
         //     }
         //   };
         //   const mailgunTransporter = nodemailer.createTransport(mailgunTransport(mailgunOptions));
-      
-        
-        
+
+
+
         const mailgunOptions = {
             auth: {
-              api_key: '1b803715634f0b1cc5bbd837ae83f96e-07ec2ba2-8b882da8',
-              domain: 'sandboxec53d94373d542a890c5c6726e9fa241.mailgun.org'
+                api_key: 'ff155434034eafbb912f60004be05a35-5d9bd83c-6ea27bde',
+                domain: 'sandboxedf13eefd9c14bdbbd27dffc495290d2.mailgun.org'
             }
-          };
-          const mailgunTransporter = nodemailer.createTransport(mailgunTransport(mailgunOptions));
-          
-          app.post('/send-email', (req, res) => {
-            const { button, doctorEmail, patientEmail } = req.body;
-          
-            if (button === 'absent') {
-              sendEmail(doctorEmail, patientEmail, 'Absent!!! You have missed the appointment', 'Dear Patient, you were absent for your appointment.');
-            } else if (button === 'visit') {
-              sendEmail(doctorEmail, patientEmail, 'Congratulations', 'Dear Patient, You have successfully visited your doctor. Further query mail me directly or book me from Doctorian');
-            }
-          
-            res.json({ message: 'Email sent successfully!' });
-          });
-          
-          async function sendEmail(from, to, subject, message) {
-            const mailOptions = {
-              from: from,
-              to: to,
-              subject: subject,
-              text: message
-            };
-          
-            await mailgunTransporter.sendMail(mailOptions);
-          }
-          
+        };
+        const mailgunTransporter = nodemailer.createTransport(mailgunTransport(mailgunOptions));
 
+        app.post('/send-email', (req, res) => {
+            const { button, doctorEmail, patientEmail } = req.body;
+
+            if (button === 'absent') {
+                sendEmail(doctorEmail, patientEmail, 'Absent!!! You have missed the appointment', 'Dear Patient, you were absent for your appointment.');
+            } else if (button === 'visit') {
+                sendEmail(doctorEmail, patientEmail, 'Congratulations', 'Dear Patient, You have successfully visited your doctor. Further query mail me directly or book me from Doctorian');
+            }
+
+            res.json({ message: 'Email sent successfully!' });
+        });
+
+        async function sendEmail(from, to, subject, message) {
+            const mailOptions = {
+                from: from,
+                to: to,
+                subject: subject,
+                text: message
+            };
+
+            await mailgunTransporter.sendMail(mailOptions);
+        }
 
 
 
@@ -159,7 +158,7 @@ async function run() {
         app.get('/consult/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id)
-;
+                ;
             const query = { id: id };
             const consult = await doctorsCollection.find(query).toArray();
             res.send(consult)
@@ -168,7 +167,7 @@ async function run() {
         app.get('/specialities/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id)
-;
+                ;
             const query = { specialities: speciality };
             const doctors = await doctorsCollection.find(query).toArray();
             res.send(doctors)
@@ -177,6 +176,29 @@ async function run() {
         // ----------------------------------------------------
         // For Add Doctor route
         // ------------------------------------------------------
+        //prescription
+
+        app.post("/prescription", async (req, res) => {
+            const prescription = req.body;
+            const result = await prescriptionCollection.insertOne(prescription);
+            res.send(result);
+        });
+
+        app.get("/prescriptions", verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: "forbidden access" });
+            }
+            // console.log(email)
+            // console.log('token', req.headers.authorization);
+            const query = { patientEmail: email };
+            // console.log(query);
+            const prescriptions = await prescriptionCollection.find(query).toArray();
+            res.send(prescriptions);
+        });
+
+
         // doctors info for add doctor route
         app.get('/doctorsInfo', async (req, res) => {
             const query = {}
@@ -302,6 +324,57 @@ async function run() {
             res.send({ isPatient: user?.category === 'Patient' })
         });
 
+        // admin  verify ----------------------------------
+        app.get('/allDoctorsAdmin', async (req, res) => {
+            const query = {}
+            const doctors = await doctorsCollection.find(query).toArray();
+            res.send(doctors)
+          })
+      
+      
+             //verifyAdmin
+             const verifyAdmin = async (req, res, next) => {
+              const decodedEmail = req.decoded.email;
+              const query = { email: decodedEmail };
+      
+              const user = await usersCollection.findOne(query);
+              if (user?.category !== 'admin') {
+                  return res.status(403).send({ message: 'forbidden Access' });
+              }
+              next();
+          }
+      
+          app.put('/allDoctorsAdmin/:id', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const filter = {_id: new  ObjectId(id)}
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    verifyStatus: true
+                }
+            }
+            const result = await doctorsCollection.updateOne(filter, updatedDoc, options);
+            res.send(result);
+        })
+      
+           //get verified sellers
+           app.get('/verifiedSeller', async (req, res) => {
+            const email = req.query.email;
+            const query = {
+                verifyStatus: true,
+                email: email
+            }
+            const result = await doctorsCollection.findOne(query);
+            res.send(result);
+        })
+
+        // --------------------------------------------------
+      
+
+
+
+
         // secure admin route by varify admin
         app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email;
@@ -322,8 +395,9 @@ async function run() {
                 return res.send(403).send({ message: 'forbidden access' })
             }
             const id = req.params.id;
-            const filter = { _id: new ObjectId(id)
- }
+            const filter = {
+                _id: new ObjectId(id)
+            }
             const options = { upsert: true };
             const updatedDoc = {
                 $set: {
@@ -362,6 +436,32 @@ async function run() {
             res.send(result)
         })
 
+// update doctor profile
+        app.put("/doctors", async (req, res) => {
+            const doctor = req.body;
+            const email = req.query.email;
+            const filter = { email: email };
+            const option = { upsert: true };
+            const updatedName = {
+              $set: {
+                designation: doctor.designation,
+                hospital: doctor.hospital,
+                TotalExperience: doctor.TotalExperience,
+                specialities: doctor.specialities,
+                id: doctor.id,
+                price: doctor.price,
+                About: doctor.About,
+                image: doctor.image,
+              },
+            };
+            const result = await doctorsCollection.updateOne(
+              filter,
+              updatedName,
+              option
+            );
+            res.send(result);
+          });
+
 
 
 
@@ -390,7 +490,7 @@ async function run() {
                 return res.status(403).send({ message: 'forbidden access' })
             }
             // console.log(email)
-;
+            ;
             // console.log('token', req.headers.authorization);
             const query = { patientEmail: email };
             // console.log(query);
@@ -402,8 +502,9 @@ async function run() {
 
         app.get('/bookings/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { _id: new ObjectId(id)
- }
+            const query = {
+                _id: new ObjectId(id)
+            }
             const booking = await bookingsCollection.findOne(query)
             res.send(booking);
         })
@@ -435,8 +536,9 @@ async function run() {
             const payment = req.body;
             const result = await paymentCollection.insertOne(payment);
             const id = payment.bookingID;
-            const filter = { _id: new ObjectId(id)
- }
+            const filter = {
+                _id: new ObjectId(id)
+            }
             const updatedDoc = {
                 $set: {
                     paid: true,
